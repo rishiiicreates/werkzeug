@@ -262,9 +262,19 @@ class MultipartDecoder:
                 data_end = match.start()
                 del_index = match.end()
             else:
-                data_end = del_index = (
-                    self._last_partial_boundary_index(data[data_start:]) + data_start
-                )
+                boundary_index = self.buffer.find(b"--" + self.boundary)
+                if (
+                    boundary_index >= 2
+                    and self.buffer[boundary_index - 2 : boundary_index] == b"\r\n"
+                ):
+                    data_end = del_index = boundary_index - 2
+                elif boundary_index >= 1 and self.buffer[boundary_index - 1] in (
+                    0x0A,
+                    0x0D,
+                ):
+                    data_end = del_index = boundary_index - 1
+                else:
+                    data_end = del_index = boundary_index
             more_data = match is None
         return bytes(data[data_start:data_end]), del_index, more_data
 
